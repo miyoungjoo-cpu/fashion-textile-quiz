@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>패션소재연구 · 편물 형성평가</title>
+<style>
+  :root{
+    --ink:#1F3864;
+    --ink-soft:#44546A;
+    --paper:#FFFFFF;
+    --panel:#F5F7FA;
+    --line:#E3E8F0;
+    --thread:#1B98A6;
+    --good:#1E7B4D;
+    --good-bg:#EAF6EE;
+    --bad:#B4322A;
+    --bad-bg:#FDECEA;
+    --radius:16px;
+  }
+
+  *{ box-sizing:border-box; }
+
+  html,body{
+    margin:0; padding:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Noto Sans KR","Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .display{
+    font-family:"Noto Serif KR","Nanum Myeongjo",serif;
+  }
+
+  .wrap{
+    max-width:640px;
+    margin:0 auto;
+    padding:0 20px 64px;
+  }
+
+  header{
+    padding:28px 0 20px;
+  }
+  .eyebrow{
+    font-size:12px;
+    letter-spacing:.14em;
+    color:var(--thread);
+    font-weight:700;
+    text-transform:uppercase;
+    margin:0 0 6px;
+  }
+  h1{
+    font-size:26px;
+    line-height:1.35;
+    margin:0 0 6px;
+    font-weight:700;
+    color:var(--ink);
+  }
+  .subtitle{
+    font-size:14px;
+    color:var(--ink-soft);
+    margin:0;
+  }
+
+  .progress-shell{
+    margin-top:22px;
+  }
+  .progress-meta{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:8px;
+  }
+  .progress-meta .count{
+    font-size:13px;
+    font-weight:700;
+    color:var(--ink);
+    font-variant-numeric:tabular-nums;
+  }
+  .progress-meta .score{
+    font-size:12px;
+    color:var(--ink-soft);
+  }
+  .stitch-track{
+    position:relative;
+    height:14px;
+    display:flex;
+    align-items:center;
+  }
+  .stitch-track::before{
+    content:"";
+    position:absolute;
+    left:0; right:0; top:50%;
+    height:0;
+    border-top:2px dashed var(--line);
+    transform:translateY(-50%);
+  }
+  .stitch-fill{
+    position:absolute;
+    left:0; top:50%;
+    height:0;
+    border-top:2px dashed var(--thread);
+    transform:translateY(-50%);
+    width:0%;
+    transition:width .5s cubic-bezier(.4,0,.2,1);
+  }
+  .stitch-dot{
+    position:absolute;
+    top:50%;
+    width:10px; height:10px;
+    border-radius:50%;
+    background:var(--paper);
+    border:2px solid var(--line);
+    transform:translate(-50%,-50%);
+    transition:background .3s, border-color .3s;
+  }
+  .stitch-dot.done{ background:var(--thread); border-color:var(--thread); }
+  .stitch-dot.current{ border-color:var(--ink); }
+
+  main{ margin-top:30px; }
+
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:26px 22px;
+  }
+
+  .q-index{
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.08em;
+    color:var(--thread);
+    margin:0 0 10px;
+    text-transform:uppercase;
+  }
+
+  .q-text{
+    font-size:19px;
+    line-height:1.5;
+    font-weight:700;
+    color:var(--ink);
+    margin:0 0 20px;
+  }
+
+  .options{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+
+  .option{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    text-align:left;
+    width:100%;
+    padding:14px 16px;
+    background:var(--paper);
+    border:1.5px solid var(--line);
+    border-radius:12px;
+    font-size:15px;
+    color:var(--ink);
+    cursor:pointer;
+    font-family:inherit;
+    transition:border-color .15s, background .15s, transform .1s;
+  }
+  .option:hover:not(:disabled){
+    border-color:var(--ink);
+  }
+  .option:active:not(:disabled){
+    transform:scale(0.99);
+  }
+  .option:disabled{
+    cursor:default;
+  }
+  .option .mark{
+    flex:0 0 auto;
+    width:26px; height:26px;
+    border-radius:50%;
+    border:1.5px solid var(--line);
+    display:flex; align-items:center; justify-content:center;
+    font-size:13px; font-weight:700;
+    color:var(--ink-soft);
+  }
+  .option .label{ flex:1; }
+
+  .option.correct{
+    background:var(--good-bg);
+    border-color:var(--good);
+  }
+  .option.correct .mark{
+    background:var(--good); border-color:var(--good); color:#fff;
+  }
+  .option.wrong{
+    background:var(--bad-bg);
+    border-color:var(--bad);
+  }
+  .option.wrong .mark{
+    background:var(--bad); border-color:var(--bad); color:#fff;
+  }
+  .option.dim{
+    opacity:.55;
+  }
+
+  .feedback{
+    margin-top:18px;
+    padding:16px 18px;
+    border-radius:12px;
+    font-size:14px;
+    line-height:1.6;
+    display:none;
+  }
+  .feedback.show{ display:block; animation:fadeIn .25s ease; }
+  .feedback.good{ background:var(--good-bg); color:#155c39; border:1px solid #bfe3cd; }
+  .feedback.bad{ background:var(--bad-bg); color:#8c2620; border:1px solid #f3c6c1; }
+  .feedback .tag{
+    display:inline-block;
+    font-weight:700;
+    margin-right:6px;
+  }
+
+  @keyframes fadeIn{
+    from{ opacity:0; transform:translateY(4px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+
+  .nav-row{
+    margin-top:22px;
+    display:flex;
+    justify-content:flex-end;
+  }
+  .next-btn{
+    display:none;
+    align-items:center;
+    gap:6px;
+    padding:12px 20px;
+    background:var(--ink);
+    color:#fff;
+    border:none;
+    border-radius:999px;
+    font-size:14px;
+    font-weight:700;
+    font-family:inherit;
+    cursor:pointer;
+  }
+  .next-btn.show{ display:inline-flex; }
+  .next-btn:active{ transform:scale(0.98); }
+
+  .result{
+    display:none;
+    text-align:center;
+    padding:40px 22px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+  }
+  .result.show{ display:block; }
+  .result .big-score{
+    font-family:"Noto Serif KR",serif;
+    font-size:56px;
+    font-weight:700;
+    color:var(--ink);
+    line-height:1;
+    margin:6px 0 4px;
+  }
+  .result .big-score span{
+    font-size:22px;
+    color:var(--ink-soft);
+    font-family:"Noto Sans KR",sans-serif;
+    font-weight:500;
+  }
+  .result .comment{
+    font-size:14px;
+    color:var(--ink-soft);
+    margin:10px 0 26px;
+  }
+  .result .retry-btn{
+    padding:12px 24px;
+    background:var(--ink);
+    color:#fff;
+    border:none;
+    border-radius:999px;
+    font-size:14px;
+    font-weight:700;
+    font-family:inherit;
+    cursor:pointer;
+  }
+  .result .retry-btn:active{ transform:scale(0.98); }
+
+  footer{
+    margin-top:36px;
+    text-align:center;
+    font-size:12px;
+    color:#9AA5B4;
+  }
+
+  @media (max-width:420px){
+    h1{ font-size:22px; }
+    .q-text{ font-size:17px; }
+    .card{ padding:20px 16px; }
+    .result .big-score{ font-size:46px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">패션소재연구</p>
+    <h1 class="display">편물(Knit)의 이해 — 형성평가</h1>
+    <p class="subtitle">문항을 선택하면 즉시 정답과 해설을 확인할 수 있습니다.</p>
+
+    <div class="progress-shell">
+      <div class="progress-meta">
+        <span class="count" id="progressCount">문항 1 / 5</span>
+        <span class="score" id="progressScore">맞은 개수 0</span>
+      </div>
+      <div class="stitch-track" id="stitchTrack">
+        <div class="stitch-fill" id="stitchFill"></div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="card" id="quizCard">
+      <p class="q-index" id="qIndexLabel">Q1</p>
+      <p class="q-text" id="qText"></p>
+      <div class="options" id="optionsWrap"></div>
+      <div class="feedback" id="feedback"></div>
+      <div class="nav-row">
+        <button class="next-btn" id="nextBtn">다음 문항 →</button>
+      </div>
+    </div>
+
+    <div class="result" id="resultCard">
+      <p class="eyebrow">RESULT</p>
+      <p class="big-score"><span id="resultScore">0</span> <span>/ 5</span></p>
+      <p class="comment" id="resultComment"></p>
+      <button class="retry-btn" id="retryBtn">다시 풀어보기</button>
+    </div>
+  </main>
+
+  <footer>패션소재연구 · 6주차 편성물의 구조와 특성 · 형성평가</footer>
+</div>
+
+<script>
+const QUESTIONS = [
+  {
+    q: "실이 서로 교차하지 않고 루프(loop)의 이어짐에 따라 만들어지는 옷감은?",
+    options: ["직물", "편물", "부직포", "가죽"],
+    answer: 1,
+    explain: "편물(knit)은 경사·위사의 교차가 아니라 루프(loop)가 이어지며 만들어지는 옷감으로, 신축성이 크고 통기성·보온성이 좋은 대신 올이 풀리거나 컬업이 일어나는 단점이 있습니다."
+  },
+  {
+    q: "하나의 실이 가로 방향으로 루프를 만들며 짜여지는 편성물은?",
+    options: ["경편성물", "위편성물", "트리코트", "라셀"],
+    answer: 1,
+    explain: "위편성물(weft knitting)은 하나의 실이 가로 방향으로 루프를 만들며 짜여지는 편물로, 신축성이 매우 크지만 올이 잘 풀립니다. 저지·리브·스웨터가 대표적입니다."
+  },
+  {
+    q: "환편기로 만들어 컷앤손(cut and sewn) 방식으로 제작되는 편물은?",
+    options: ["스웨터 니트", "다이마루 니트(저지)", "레이스", "부직포"],
+    answer: 1,
+    explain: "다이마루 니트(knit jersey)는 환편기로 원통형으로 짠 뒤 옷 모양대로 재단해 봉제(cut and sewn)하는 방식입니다. 반면 스웨터는 횡편기로 옷의 부분 형태를 직접 편성합니다."
+  },
+  {
+    q: "스웨터의 게이지(gauge, 1인치 안의 편침 수)가 높을수록(숫자가 클수록) 나타나는 특징은?",
+    options: ["두껍고 성기다", "얇고 촘촘하다", "신축성이 완전히 사라진다", "편물이 아니라 직물이 된다"],
+    answer: 1,
+    explain: "게이지가 올라갈수록 얇은 스웨터가 됩니다. 5~10G는 굵은 게이지로 양모·아크릴 방적사로, 24~40G는 가는 게이지로 인조섬유 필라멘트사로 주로 편성합니다."
+  },
+  {
+    q: "수영복 원단의 조직과 소재 조합으로 가장 적절한 것은?",
+    options: ["평직 + 면 100%", "트리코트(경편) + 나일론·스판덱스 혼방", "능직 + 울 100%", "레이스 + 마 100%"],
+    answer: 1,
+    explain: "수영복은 경편성물의 한 종류인 트리코트에 나일론(또는 폴리에스터)과 스판덱스를 혼방해 만듭니다. 트리코트 조직 자체의 신축성에 스판덱스가 더해져 2way·4way 스트레치가 만들어집니다."
+  }
+];
+
+
+let current = 0;
+let score = 0;
+let answered = [];
+
+const elQIndex = document.getElementById('qIndexLabel');
+const elQText = document.getElementById('qText');
+const elOptionsWrap = document.getElementById('optionsWrap');
+const elFeedback = document.getElementById('feedback');
+const elNextBtn = document.getElementById('nextBtn');
+const elProgressCount = document.getElementById('progressCount');
+const elProgressScore = document.getElementById('progressScore');
+const elStitchTrack = document.getElementById('stitchTrack');
+const elStitchFill = document.getElementById('stitchFill');
+const elQuizCard = document.getElementById('quizCard');
+const elResultCard = document.getElementById('resultCard');
+const elResultScore = document.getElementById('resultScore');
+const elResultComment = document.getElementById('resultComment');
+const elRetryBtn = document.getElementById('retryBtn');
+
+function buildStitchDots(){
+  elStitchTrack.querySelectorAll('.stitch-dot').forEach(d => d.remove());
+  const total = QUESTIONS.length;
+  for(let i=0;i<total;i++){
+    const dot = document.createElement('div');
+    dot.className = 'stitch-dot';
+    dot.style.left = (i/(total-1))*100 + '%';
+    dot.dataset.idx = i;
+    elStitchTrack.appendChild(dot);
+  }
+}
+
+function updateProgress(){
+  const total = QUESTIONS.length;
+  elProgressCount.textContent = `문항 ${current+1} / ${total}`;
+  elProgressScore.textContent = `맞은 개수 ${score}`;
+  const fillPct = (current/(total-1))*100;
+  elStitchFill.style.width = fillPct + '%';
+  elStitchTrack.querySelectorAll('.stitch-dot').forEach(dot=>{
+    const idx = parseInt(dot.dataset.idx,10);
+    dot.classList.toggle('done', idx < current || (idx===current && answered[current]!==undefined));
+    dot.classList.toggle('current', idx === current);
+  });
+}
+
+function renderQuestion(){
+  const item = QUESTIONS[current];
+  elQIndex.textContent = `Q${current+1}`;
+  elQText.textContent = item.q;
+  elOptionsWrap.innerHTML = '';
+  elFeedback.className = 'feedback';
+  elFeedback.textContent = '';
+  elNextBtn.classList.remove('show');
+
+  const marks = ['①','②','③','④'];
+  item.options.forEach((opt, i)=>{
+    const btn = document.createElement('button');
+    btn.className = 'option';
+    btn.innerHTML = `<span class="mark">${marks[i]}</span><span class="label">${opt}</span>`;
+    btn.addEventListener('click', ()=> selectAnswer(i));
+    elOptionsWrap.appendChild(btn);
+  });
+
+  if(answered[current] !== undefined){
+    lockQuestion(answered[current]);
+  }
+
+  updateProgress();
+}
+
+function selectAnswer(i){
+  if(answered[current] !== undefined) return;
+  answered[current] = i;
+  const item = QUESTIONS[current];
+  if(i === item.answer) score++;
+  lockQuestion(i);
+  updateProgress();
+}
+
+function lockQuestion(selectedIdx){
+  const item = QUESTIONS[current];
+  const opts = elOptionsWrap.querySelectorAll('.option');
+  opts.forEach((btn, i)=>{
+    btn.disabled = true;
+    if(i === item.answer){
+      btn.classList.add('correct');
+    } else if(i === selectedIdx){
+      btn.classList.add('wrong');
+    } else {
+      btn.classList.add('dim');
+    }
+  });
+
+  const isCorrect = selectedIdx === item.answer;
+  elFeedback.className = 'feedback show ' + (isCorrect ? 'good' : 'bad');
+  elFeedback.innerHTML = `<span class="tag">${isCorrect ? '정답입니다.' : '오답입니다.'}</span> ${item.explain}`;
+
+  elNextBtn.classList.add('show');
+  elNextBtn.textContent = current === QUESTIONS.length - 1 ? '결과 보기 →' : '다음 문항 →';
+}
+
+elNextBtn.addEventListener('click', ()=>{
+  if(current < QUESTIONS.length - 1){
+    current++;
+    renderQuestion();
+  } else {
+    showResult();
+  }
+});
+
+function showResult(){
+  elQuizCard.style.display = 'none';
+  elResultCard.classList.add('show');
+  elResultScore.textContent = score;
+  let comment;
+  if(score === QUESTIONS.length) comment = '완벽합니다! 위편성물·경편성물과 편물의 특성을 정확히 이해하고 있어요.';
+  else if(score >= 3) comment = '잘했어요! 헷갈렸던 문항의 해설을 다시 한 번 확인해보세요.';
+  else comment = '괜찮아요. 강의자료의 위편/경편, 다이마루 니트 vs 스웨터, 게이지 부분을 다시 살펴본 뒤 재도전해보세요.';
+  elResultComment.textContent = comment;
+  elProgressCount.textContent = `문항 ${QUESTIONS.length} / ${QUESTIONS.length}`;
+  elProgressScore.textContent = `맞은 개수 ${score}`;
+  elStitchFill.style.width = '100%';
+  elStitchTrack.querySelectorAll('.stitch-dot').forEach(dot=> dot.classList.add('done'));
+}
+
+elRetryBtn.addEventListener('click', ()=>{
+  current = 0; score = 0; answered = [];
+  elQuizCard.style.display = 'block';
+  elResultCard.classList.remove('show');
+  renderQuestion();
+});
+
+buildStitchDots();
+renderQuestion();
+</script>
+
+</body>
+</html>
